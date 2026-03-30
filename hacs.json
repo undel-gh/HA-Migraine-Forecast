@@ -1,0 +1,6 @@
+{
+  "name": "Migraine Risk",
+  "content_in_root": false,
+  "domains": ["sensor"],
+  "render_readme": true
+}
