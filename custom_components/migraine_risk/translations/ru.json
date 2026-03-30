@@ -1,0 +1,17 @@
+{
+  "title": "Риск мигрени",
+  "state": {
+    "low": "Низкий",
+    "medium": "Средний",
+    "high": "Высокий"
+  },
+  "attributes": {
+    "forecast": "Прогноз",
+    "pressure": "Давление",
+    "last_update": "Последнее обновление",
+    "morning": "Утро",
+    "afternoon": "День",
+    "evening": "Вечер",
+    "level": "Уровень риска"
+  }
+}
