@@ -1,0 +1,10 @@
+{
+  "domain": "migraine_risk",
+  "name": "Migraine Risk",
+  "version": "2.0.0",
+  "documentation": "https://github.com/YOUR_USERNAME/ha-migraine-risk",
+  "dependencies": [],
+  "codeowners": ["@YOUR_USERNAME"],
+  "requirements": [],
+  "iot_class": "local_polling"
+}
