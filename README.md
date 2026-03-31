@@ -21,6 +21,14 @@ Advanced migraine risk prediction for Home Assistant.
 
 Copy `custom_components/migraine_risk` to `/config/custom_components/`
 
+## Setup
+
+Add in configuration.yaml:
+
+```yaml
+sensor:
+  - platform: migraine_risk
+
 ## Lovelace
 
 ```yaml
