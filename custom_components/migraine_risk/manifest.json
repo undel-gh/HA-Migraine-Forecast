@@ -1,9 +1,10 @@
 {
   "domain": "migraine_risk",
-  "name": "Migraine Risk Sensor",
+  "name": "Migraine Risk",
   "version": "2.0.0",
-  "documentation": "https://github.com/undel-gh/HA-Migraine-Forecast",
   "requirements": [],
   "dependencies": [],
-  "codeowners": ["@undel-gh"]
+  "codeowners": ["@undel-gh"],
+  "config_flow": false,
+  "iot_class": "local_polling"
 }
