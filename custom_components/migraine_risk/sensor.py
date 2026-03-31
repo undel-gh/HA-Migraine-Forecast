@@ -1,63 +1,37 @@
 import logging
-from datetime import datetime, timedelta
-import asyncio
-import voluptuous as vol
-
+from datetime import datetime
 from homeassistant.helpers.entity import Entity
-from homeassistant.helpers import config_validation as cv
-from homeassistant.const import CONF_NAME
+from homeassistant.components.weather import DOMAIN as WEATHER_DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-DOMAIN = "migraine_risk"
-DEFAULT_NAME = "Migraine Risk"
-
-CONF_FORECAST_SOURCE = "forecast_source"
-CONF_PRESSURE_SENSOR = "pressure_sensor"
-
-PLATFORM_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_NAME, default=DEFAULT_NAME): cv.string,
-        vol.Required(CONF_FORECAST_SOURCE): cv.entity_id,
-        vol.Required(CONF_PRESSURE_SENSOR): cv.entity_id,
-    }
-)
-
-LEVELS = ["low", "medium", "high"]
-
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Set up the Migraine Risk sensor."""
-    name = config.get(CONF_NAME)
-    forecast_source = config.get(CONF_FORECAST_SOURCE)
-    pressure_sensor = config.get(CONF_PRESSURE_SENSOR)
-
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    """Setup migraine risk sensor from config entry."""
+    config = config_entry.data
+    name = config.get("name", "Migraine Risk")
+    forecast_source = config.get("forecast_source")
+    pressure_sensor = config.get("pressure_sensor")
     async_add_entities([MigraineRiskSensor(hass, name, forecast_source, pressure_sensor)], True)
 
-class MigraineRiskSensor(Entity):
-    """Representation of a Migraine Risk sensor."""
 
-    def __init__(self, hass, name, forecast_source, pressure_sensor):
+class MigraineRiskSensor(Entity):
+    """Representation of the Migraine Risk sensor."""
+
+    def __init__(self, hass, name, forecast_entity, pressure_entity):
         self.hass = hass
         self._name = name
-        self._forecast_source = forecast_source
-        self._pressure_sensor = pressure_sensor
+        self._forecast_entity = forecast_entity
+        self._pressure_entity = pressure_entity
         self._state = None
         self._attributes = {}
-        self._last_update = None
-
-        # загрузка переводов из файла ru.json, если есть
-        self._translations = {}
-        try:
-            translations = hass.config.path(f"custom_components/{DOMAIN}/translations/ru.json")
-            import json
-            with open(translations, "r", encoding="utf-8") as f:
-                self._translations = json.load(f).get("state", {})
-        except Exception:
-            _LOGGER.warning("Translations not loaded, using default labels")
 
     @property
     def name(self):
         return self._name
+
+    @property
+    def unique_id(self):
+        return "migraine_risk_sensor"
 
     @property
     def state(self):
@@ -69,45 +43,36 @@ class MigraineRiskSensor(Entity):
 
     async def async_update(self):
         """Fetch new state data for the sensor."""
-
-        # получение текущего давления
-        pressure = self.hass.states.get(self._pressure_sensor)
-        if pressure is None:
-            _LOGGER.warning("Pressure sensor %s not found", self._pressure_sensor)
-            return
-
-        try:
-            pressure_value = float(pressure.state)
-        except ValueError:
-            _LOGGER.warning("Pressure sensor value is not a number: %s", pressure.state)
-            return
-
-        # получение прогноза
-        forecast = self.hass.states.get(self._forecast_source)
-        if forecast is None:
-            _LOGGER.warning("Forecast source %s not found", self._forecast_source)
-            return
-
-        forecast_data = {}
-        try:
-            forecast_data = forecast.attributes.get("forecast", {})
-        except Exception:
-            _LOGGER.warning("Forecast data not found")
-
-        # простая логика риска: низкий/средний/высокий по давлению
-        if pressure_value < 985:
-            level_key = "high"
-        elif pressure_value < 995:
-            level_key = "medium"
+        # Получаем текущее давление
+        pressure = None
+        if self._pressure_entity and self._pressure_entity in self.hass.states:
+            pressure = self.hass.states.get(self._pressure_entity).state
         else:
-            level_key = "low"
+            _LOGGER.warning("Pressure sensor %s not found", self._pressure_entity)
 
-        # перевод уровня
-        self._state = self._translations.get(level_key, level_key.capitalize())
+        # Получаем прогноз погоды (state + attributes)
+        forecast_data = {}
+        if self._forecast_entity and self._forecast_entity in self.hass.states:
+            weather = self.hass.states.get(self._forecast_entity)
+            forecast_data = weather.attributes.get("forecast", {})
+        else:
+            _LOGGER.warning("Forecast entity %s not found", self._forecast_entity)
 
-        # формируем атрибуты
+        # Простейшая логика риска (можно заменить на более сложную)
+        level = "low"
+        if pressure is not None:
+            try:
+                p = float(pressure)
+                if p < 980:
+                    level = "high"
+                elif p < 990:
+                    level = "medium"
+            except Exception as e:
+                _LOGGER.error("Error parsing pressure: %s", e)
+
+        self._state = level
         self._attributes = {
+            "pressure": pressure,
             "forecast": forecast_data,
-            "pressure": pressure_value,
             "last_update": datetime.now().isoformat(),
         }
